@@ -78,4 +78,4 @@ def on_audio(data):
         os.unlink(tmp_path)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5050, debug=False)
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5001)), debug=False)
