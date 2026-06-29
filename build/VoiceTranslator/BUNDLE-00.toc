@@ -1,0 +1,3 @@
+([('VoiceTranslator',
+   '/Users/francescomontanile/translator/dist/VoiceTranslator',
+   'EXECUTABLE')],)

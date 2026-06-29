@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinguaLive</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: white; display: flex; }
+
+        /* SIDEBAR */
+        .sidebar { width: 220px; min-height: 100vh; background: rgba(0,0,0,0.3); border-right: 1px solid rgba(255,255,255,0.08); padding: 30px 16px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-logo { font-size: 26px; font-weight: 700; background: linear-gradient(90deg, #4fc3f7, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+        .sidebar-tagline { font-size: 11px; color: #475569; margin-bottom: 40px; line-height: 1.4; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; color: #64748b; margin-bottom: 4px; transition: all 0.2s; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #94a3b8; }
+        .nav-item.active { background: rgba(79,195,247,0.12); color: #4fc3f7; font-weight: 600; }
+        .nav-icon { font-size: 16px; }
+        .sidebar-footer { margin-top: auto; font-size: 11px; color: #1e293b; line-height: 1.6; }
+
+        /* MAIN CONTENT */
+        .main { flex: 1; padding: 40px; overflow-y: auto; max-width: 700px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .page-title { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+        .page-subtitle { font-size: 14px; color: #64748b; margin-bottom: 30px; line-height: 1.6; }
+
+        /* CARDS */
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+        .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 16px; }
+
+        /* FEATURES */
+        .features { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+        .feature { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; text-align: center; }
+        .feature .icon { font-size: 26px; margin-bottom: 8px; }
+        .feature .title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+        .feature .desc { font-size: 11px; color: #64748b; line-height: 1.5; }
+
+        /* HOW IT WORKS */
+        .steps { display: flex; gap: 10px; align-items: flex-start; }
+        .step { flex: 1; text-align: center; }
+        .step .num { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #4fc3f7, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin: 0 auto 8px; }
+        .step .step-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+        .step .step-desc { font-size: 11px; color: #64748b; line-height: 1.4; }
+        .arrow { color: #334155; font-size: 20px; padding-top: 12px; }
+
+        /* LANGUAGES */
+        .lang-list { display: flex; flex-direction: column; gap: 10px; }
+        .lang-row-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.04); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+        .lang-flag { font-size: 22px; }
+        .lang-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        .lang-native { font-size: 12px; color: #64748b; }
+
+        /* TRANSLATOR */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; font-size: 15px; font-family: inherit; }
+        .form-group textarea { height: 100px; resize: none; }
+        .form-group select option { background: #1e293b; }
+        .room-row { display: flex; gap: 10px; }
+        .room-row input { flex: 1; }
+        .btn { padding: 11px 24px; background: linear-gradient(135deg, #4fc3f7, #a78bfa); border: none; border-radius: 10px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; }
+        .btn-full { width: 100%; padding: 14px; background: linear-gradient(135deg, #4fc3f7, #a78bfa); border: none; border-radius: 10px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+        .btn-get-started { display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #4fc3f7, #a78bfa); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+        /* TRANSCRIPT */
+        .status-bar { font-size: 13px; color: #64748b; margin-bottom: 12px; }
+        .status-bar span { color: #4fc3f7; }
+        .transcript { background: rgba(0,0,0,0.2); border-radius: 14px; padding: 16px; height: 220px; overflow-y: auto; margin-bottom: 16px; }
+        .transcript::-webkit-scrollbar { width: 4px; }
+        .transcript::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .msg { margin-bottom: 12px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .msg .lang-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; color: #64748b; }
+        .msg .bubble { display: inline-block; padding: 8px 14px; border-radius: 12px; font-size: 14px; max-width: 90%; }
+        .msg.original .bubble { background: rgba(79,195,247,0.15); border: 1px solid rgba(79,195,247,0.3); color: #e2e8f0; }
+        .msg.translation .bubble { background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); color: #e2e8f0; }
+        .speak-btn { width: 100%; padding: 18px; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #4fc3f7, #a78bfa); color: white; }
+        .speak-btn.recording { background: linear-gradient(135deg, #f43f5e, #fb923c); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+
+        /* CONTACT */
+        .bio-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #4fc3f7, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+        .bio-name { font-size: 18px; font-weight: 700; color: #e2e8f0; }
+        .bio-location { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .bio-text { font-size: 14px; color: #94a3b8; line-height: 1.7; }
+        .contact-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .contact-row:last-child { border-bottom: none; }
+        .contact-icon { font-size: 18px; }
+        .contact-label { font-size: 11px; color: #64748b; }
+        .contact-value { font-size: 14px; color: #4fc3f7; }
+        .success-msg { background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.3); border-radius: 10px; padding: 12px; text-align: center; font-size: 14px; color: #4fc3f7; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-logo">LinguaLive</div>
+        <div class="sidebar-tagline">Real-time voice translation</div>
+        <div class="nav-item active" onclick="showPage('home', this)"><span class="nav-icon">🏠</span> Home</div>
+        <div class="nav-item" onclick="showPage('translator', this)"><span class="nav-icon">🎙️</span> Translator</div>
+        <div class="nav-item" onclick="showPage('contact', this)"><span class="nav-icon">✉️</span> Contact</div>
+        <div class="sidebar-footer">Powered by<br>OpenAI Whisper & DeepL</div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- HOME -->
+        <div class="page active" id="home-page">
+            <div class="page-title">Welcome to LinguaLive</div>
+            <div class="page-subtitle">Break language barriers in real time. Speak naturally in your language and let LinguaLive instantly translate your words for anyone in the world — no typing, no delays.</div>
+
+            <div class="features">
+                <div class="feature"><div class="icon">🎙️</div><div class="title">Voice First</div><div class="desc">Just speak naturally — no typing required</div></div>
+                <div class="feature"><div class="icon">⚡</div><div class="title">Real-Time</div><div class="desc">Translation happens in seconds</div></div>
+                <div class="feature"><div class="icon">🌍</div><div class="title">6 Languages</div><div class="desc">Covering major world languages</div></div>
+                <div class="feature"><div class="icon">📱</div><div class="title">Any Device</div><div class="desc">Works on phones, tablets and computers</div></div>
+                <div class="feature"><div class="icon">🔒</div><div class="title">Private Rooms</div><div class="desc">Your conversation stays between you</div></div>
+                <div class="feature"><div class="icon">🆓</div><div class="title">Easy to Use</div><div class="desc">No setup needed — just open and talk</div></div>
+            </div>
+
+            <div class="card">
+                <h3>How it works</h3>
+                <div class="steps">
+                    <div class="step"><div class="num">1</div><div class="step-title">Join a Room</div><div class="step-desc">Share a room code with the person you want to talk to</div></div>
+                    <div class="arrow">→</div>
+                    <div class="step"><div class="num">2</div><div class="step-title">Pick Language</div><div class="step-desc">Each person selects the language they speak</div></div>
+                    <div class="arrow">→</div>
+                    <div class="step"><div class="num">3</div><div class="step-title">Speak</div><div class="step-desc">Tap the button, speak, and hear the translation instantly</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Supported Languages</h3>
+                <div class="lang-list">
+                    <div class="lang-row-item"><div class="lang-flag">🇺🇸</div><div><div class="lang-name">English</div><div class="lang-native">English</div></div></div>
+                    <div class="lang-row-item"><div class="lang-flag">🇮🇹</div><div><div class="lang-name">Italian</div><div class="lang-native">Italiano</div></div></div>
+                    <div class="lang-row-item"><div class="lang-flag">🇪🇸</div><div><div class="lang-name">Spanish</div><div class="lang-native">Español</div></div></div>
+                    <div class="lang-row-item"><div class="lang-flag">🇫🇷</div><div><div class="lang-name">French</div><div class="lang-native">Français</div></div></div>
+                    <div class="lang-row-item"><div class="lang-flag">🇩🇪</div><div><div class="lang-name">German</div><div class="lang-native">Deutsch</div></div></div>
+                    <div class="lang-row-item"><div class="lang-flag">🇧🇷</div><div><div class="lang-name">Portuguese</div><div class="lang-native">Português</div></div></div>
+                </div>
+            </div>
+
+            <button class="btn-get-started" onclick="showPage('translator', document.querySelector('.nav-item:nth-child(4)'))">Get Started →</button>
+        </div>
+
+        <!-- TRANSLATOR -->
+        <div class="page" id="translator-page">
+            <div class="page-title">Translator</div>
+            <div class="page-subtitle">Join a room, pick your language, and start speaking. Share the room code with the other person so they can join too.</div>
+
+            <div id="setup-section">
+                <div class="card">
+                    <h3>Start a Session</h3>
+                    <div class="form-group">
+                        <label>Your Language</label>
+                        <select id="language">
+                            <option>🇺🇸 English</option>
+                            <option>🇮🇹 Italian</option>
+                            <option>🇪🇸 Spanish</option>
+                            <option>🇫🇷 French</option>
+                            <option>🇩🇪 German</option>
+                            <option>🇧🇷 Portuguese</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Room Code</label>
+                        <div class="room-row">
+                            <input type="text" id="room" value="room123" placeholder="Enter room code" />
+                            <button class="btn" onclick="joinRoom()">Join →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="session-section" style="display:none;">
+                <div class="card">
+                    <h3>Live Conversation</h3>
+                    <div class="status-bar" id="status">Connected — <span>ready to translate</span></div>
+                    <div class="transcript" id="transcript"></div>
+                    <button class="speak-btn" id="speakBtn" onclick="toggleRecording()">🎙 Tap to Speak</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="page" id="contact-page">
+            <div class="page-title">Contact</div>
+            <div class="page-subtitle">Have a question, suggestion, or just want to say hello? Get in touch with the developer.</div>
+
+            <div class="card">
+                <h3>About the Developer</h3>
+                <div class="bio-header">
+                    <div class="avatar">F</div>
+                    <div>
+                        <div class="bio-name">Francesco Montanile</div>
+                        <div class="bio-location">📍 Phoenix, Arizona</div>
+                    </div>
+                </div>
+                <div class="bio-text">Growing up in an Italian-American family, I know firsthand how difficult it can be when language stands in the way of connection. I built LinguaLive to make it easier for families and friends across the world to communicate — whether you're calling a relative in Italy, getting help from a local in another country, or simply trying to connect with someone who speaks a different language. My goal is to make real-time translation as simple and natural as a regular phone call.</div>
+            </div>
+
+            <div class="card">
+                <h3>Get in Touch</h3>
+                <div class="contact-row"><div class="contact-icon">✉️</div><div><div class="contact-label">Email</div><div class="contact-value">fcmont11@gmail.com</div></div></div>
+                <div class="contact-row"><div class="contact-icon">🌍</div><div><div class="contact-label">App</div><div class="contact-value">LinguaLive — Real-time Voice Translator</div></div></div>
+            </div>
+
+            <div class="card">
+                <h3>Send a Message</h3>
+                <div class="form-group"><label>Your Name</label><input type="text" id="contact-name" placeholder="Your name" /></div>
+                <div class="form-group"><label>Your Email</label><input type="text" id="contact-email" placeholder="your@email.com" /></div>
+                <div class="form-group"><label>Message</label><textarea id="contact-msg" placeholder="Write your message here..."></textarea></div>
+                <button class="btn-full" onclick="sendMessage()">Send Message</button>
+                <div class="success-msg" id="success-msg">✅ Message sent! Francesco will get back to you soon.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const socket = io();
+        let room, language, mediaRecorder, audioChunks = [], recording = false;
+
+        const langMap = {
+            "🇺🇸 English": "English",
+            "🇮🇹 Italian": "Italian",
+            "🇪🇸 Spanish": "Spanish",
+            "🇫🇷 French": "French",
+            "🇩🇪 German": "German",
+            "🇧🇷 Portuguese": "Portuguese"
+        };
+
+        const langCodes = {
+            "English": "en-US",
+            "Italian": "it-IT",
+            "Spanish": "es-ES",
+            "French": "fr-FR",
+            "German": "de-DE",
+            "Portuguese": "pt-BR"
+        };
+
+        function showPage(page, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(page + '-page').classList.add('active');
+            if (el) el.classList.add('active');
+        }
+
+        socket.on('status', d => { document.getElementById('status').innerHTML = 'Connected — <span>' + d.msg + '</span>'; });
+        socket.on('room_info', d => { document.getElementById('status').innerHTML = 'Connected — <span>' + d.users + ' person(s) in room</span>'; });
+
+        socket.on('transcript', d => {
+            if (d.speaker === language) return;
+            const t = document.getElementById('transcript');
+            t.innerHTML += '<div class="msg original"><div class="lang-tag">' + d.speaker + '</div><div class="bubble">' + d.original + '</div></div>';
+            t.innerHTML += '<div class="msg translation"><div class="lang-tag">' + d.target_lang + '</div><div class="bubble">' + d.translation + '</div></div>';
+            t.scrollTop = t.scrollHeight;
+            const utter = new SpeechSynthesisUtterance(d.translation);
+            utter.lang = langCodes[d.target_lang] || 'en-US';
+            window.speechSynthesis.speak(utter);
+        });
+
+        function joinRoom() {
+            const rawLang = document.getElementById('language').value;
+            language = langMap[rawLang];
+            room = document.getElementById('room').value;
+            socket.emit('join', { room, language });
+            document.getElementById('setup-section').style.display = 'none';
+            document.getElementById('session-section').style.display = 'block';
+        }
+
+        function sendMessage() {
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const msg = document.getElementById('contact-msg').value;
+            if (!name || !email || !msg) { alert('Please fill in all fields.'); return; }
+            document.getElementById('success-msg').style.display = 'block';
+            document.getElementById('contact-name').value = '';
+            document.getElementById('contact-email').value = '';
+            document.getElementById('contact-msg').value = '';
+        }
+
+        async function toggleRecording() {
+            if (recording) {
+                mediaRecorder.stop();
+                recording = false;
+                document.getElementById('speakBtn').innerText = '🎙 Tap to Speak';
+                document.getElementById('speakBtn').classList.remove('recording');
+            } else {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64 = reader.result.split(',')[1];
+                        socket.emit('audio', { room, language, audio: base64 });
+                    };
+                    reader.readAsDataURL(blob);
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                recording = true;
+                document.getElementById('speakBtn').innerText = '🔴 Recording... Tap to Stop';
+                document.getElementById('speakBtn').classList.add('recording');
+            }
+        }
+    </script>
+</body>
+</html>
