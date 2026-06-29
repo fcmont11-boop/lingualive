@@ -7,8 +7,9 @@ import threading
 import tkinter as tk
 from tkinter import scrolledtext
 
-OPENAI_API_KEY = "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"
-DEEPL_API_KEY = "9d136d63-7466-4668-88f3-27b11f2f5df7:fx"
+OPENAI_API_KEY = ""
+DEEPL_API_KEY = ""
+ELEVENLABS_API_KEY = ""
 
 SAMPLE_RATE = 44100
 DURATION = 5
